@@ -1,3 +1,78 @@
+
+# 2.8.0 Fork (2.7.7 SMFramework + 2.7.6 Fixes)
+This is a fork I've created some time ago to fix Measure for Sketch v52+.
+
+It includes a lot of changes, fixes and aditions, the latest being the addition of the SMFramework from the v2.7.7 released by @utom recently, allowing for the `Toolbar 2.0` to work to certain extent.
+
+Remember to **uninstall current plugin version**, **restart sketch** then, install the new version. 
+
+[Download the latest zip file from the fork](https://github.com/ellunium/sketch-measure-latest/archive/master.zip)
+
+#### Check the version of the installed plugin:
+
+Inside Sketch, Go to the menu:
+- Plugins > Manage Plugins...
+- Scroll down to "Sketch Measure"
+    - It should say 2.8.0
+
+# Changelog:
+
+### **FIXED**
+- improved support for inspecting symbols, paths and shapes styles and lybrary styles.
+- fixed issues with nested symbols and assets.
+- fixed a bug where masked symbols could not be inspected
+- fixed a bug where marking sizes and spacings would not have the desired outcome
+- fixed a bug where symbols would not get exported after v53 support fix
+- support Sketch v53
+- fixed bug to show radius when rectangle fill is an image when exporting
+- fixed bug where styles would not show when exporting
+- fixed radius support when exporting and marking
+- fixed crash when marking overlays
+- baseline fixes for Sketch v52+
+
+### **CHANGED**
+- changed version to 2.8.0 for all languages
+- changed version to 2.7.9 for all languages
+- changed version to 2.7.8 for all languages
+- updated SMFramework to latest version by @utom
+- changed version to 2.7.6 for all languages
+- changed radius validation to array, making it less prone to erros
+
+### **ADDED**
+- added a check in case CSSAtributes() gets fixed and they add back radius-border property
+- added fix to show **Library and Local styles**, also added a check for sharedStyleID
+- added **backward compatibility for notes** marked with older versions of the plugin
+- added support to **show radius** even on masked items
+- expanded **radius support to handle multiple radius** values on mark and export
+- added support for oval, path, triangle, star and polygon shapes
+
+# A note on Toolbar 2.0 (_beta_)
+
+Some functions won't work as proper with the `Toolbar 2.0` (e.g.: `Text Styles` will not output).
+Although I've added the SMFramework from the latest v2.7.7 released by @utom, it uses a compiled codebase done in XCode that I don't have access to make changes.
+
+# Still not working?
+Follow the steps below:
+
+- [ ] Uninstall the plugin
+- [ ] Quit Sketch
+- [ ] Follow the steps bellow to remove the `PluginsWarehouse` folder
+- [ ] [Download the latest zip file from the fork](https://github.com/ellunium/sketch-measure-latest/archive/master.zip)
+- [ ] Reinstall the plugin
+- [ ] Test the `Mark Properties / Spec Export` again
+
+> Remove the `PluginsWarehouse` folder that lives in `~/Library/Application Support/com.bohemiancoding.sketch3/`. This is where we cache plugin downloads, and if you’ve been testing different versions of your appcast, you probably have some old stuff there that’s worth cleaning.
+> - Go to the Finder of Mac OS
+> - From the “Go” menu navigate down to “Go to Folder” or...
+> - Hit Command+Shift+G from the Mac OS X desktop or a Finder window
+> - Paste the folder location `~/Library/Application Support/com.bohemiancoding.sketch3/`
+> - Remove/Delete the `PluginsWarehouse` folder
+
+I hope it helps  :) 
+
+
+
+
 # A new feature for Sketch Measure: Export Layer's influence Rect to Spec.
 
 Layer's influence rect includes the area of shadows and outside borders, it's exactly the same size with the exported image.
@@ -25,7 +100,7 @@ Make it fun to create specs for developers and teammates. **Sketch 49.* support*
 ## Installing Plugins
 
 ### Install from download
-1. [Download the ZIP file](https://github.com/utom/sketch-measure/archive/master.zip) and unzip
+1. [Download the ZIP file](https://github.com/ellunium/sketch-measure-latest/archive/master.zip) and unzip
 2. Open `Sketch Measure.sketchplugin`
 
 ### Install with Sketch Plugin Manager

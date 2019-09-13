@@ -447,19 +447,38 @@ SM.extend({
         return style.contextSettings().opacity()
     },
     getStyleName: function(layer){
-        var styles = (this.is(layer, MSTextLayer))? this.document.documentData().layerTextStyles(): this.document.documentData().layerStyles(),
-        layerStyle = layer.style(),
-        sharedObjectID = layerStyle.objectID(),
-        style;
+        if(layer.sharedStyleID()){
+            var styles = (this.is(layer, MSTextLayer))? this.document.documentData().layerTextStyles(): this.document.documentData().layerStyles(),
+                layerStyle = layer.style(),
+                sharedObjectID = layer.sharedStyleID(),
+                style;
+            
+            styles = styles.objectsSortedByName();
 
-        styles = styles.objectsSortedByName();
+            if(styles.count() > 0){
+                style = this.find({key: "(objectID != NULL) && (objectID == %@)", match: sharedObjectID}, styles);
+            }
 
-        if(styles.count() > 0){
-            style = this.find({key: "(objectID != NULL) && (objectID == %@)", match: sharedObjectID}, styles);
+            if(!style){
+                var styles = (this.is(layer, MSTextLayer))? this.document.documentData().foreignTextStyles(): this.document.documentData().foreignLayerStyles(),
+                layerStyle = layer.style(),
+                sharedObjectID = layer.sharedStyleID(),
+                style;
+
+                styles.forEach(libraryStyle => {
+                    if(String(libraryStyle.localSharedStyle().objectID()) == String(sharedObjectID)){
+                        style = libraryStyle.localSharedStyle().name();
+                    }
+                });
+                
+                if(!style) return "";
+                return this.toJSString(style);
+            }
+            return this.toJSString(style.name());
+
+        } else {
+            return "";
         }
-
-        if(!style) return "";
-        return this.toJSString(style.name());
     },
     updateContext: function(){
         this.context.document = NSDocumentController.sharedDocumentController().currentDocument();
@@ -475,10 +494,10 @@ SM.extend({
         return Math.round( number / 2 );
     },
     convertUnit: function(length, isText, percentageType){
-        if(length.length){
+        if(Array.isArray(length)){
             var units = this.configs.unit.split("/"),
                 unit = units[0];
-
+        
             if( units.length > 1 && isText){
                 unit = units[1];
             }
@@ -489,8 +508,8 @@ SM.extend({
             length.forEach(function(element) {
                 tempLegth.push(Math.round( element / scale * 10 ) / 10);
             });
-
-            return tempLegth.join(unit + ' ') + unit;
+              
+            return tempLegth.join(unit + ' ') + unit;  
 
         } else {
 
@@ -503,29 +522,29 @@ SM.extend({
                     return Math.round((length / artboardRect.height) * 1000) / 10 + "%";
                 }
             }
-
+    
             var length = Math.round( length / this.configs.scale * 10 ) / 10,
                 units = this.configs.unit.split("/"),
                 unit = units[0];
-
+    
             if( units.length > 1 && isText){
                 unit = units[1];
             }
-
+    
             return length + unit;
         }
-
+        
     },
     toHex:function(c) {
         var hex = Math.round(c).toString(16).toUpperCase();
-        return hex.length == 1 ? "0" + hex :hex;
+        return hex.length == 1 ? "0" + hex : hex;
     },
     hexToRgb:function(hex) {
         var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
-            r: this.toHex(result[1]),
-            g: this.toHex(result[2]),
-            b: this.toHex(result[3])
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
         } : null;
     },
     isIntersect: function(targetRect, layerRect){
@@ -932,11 +951,11 @@ SM.extend({
         boxRect.setWidth(textRect.width + 8);
         boxRect.setHeight(textRect.height + 8);
 
-        arrowRect.setWidth(6);
-        arrowRect.setHeight(6);
+        arrowRect.setWidth(8);
+        arrowRect.setHeight(8);
         arrowRect.setX(arrowX);
         arrowRect.setY(arrowY);
-    		arrow.setRotation(45);
+		arrow.setRotation(45);
 
         return {
             element: box,
@@ -1538,7 +1557,6 @@ SM.extend({
         }
     }
 });
-
 
 SM.extend({
     overlay: function(target){
@@ -2391,7 +2409,7 @@ SM.extend({
                this.is(layer, MSSliceLayer) ||
                this.is(layer, MSSymbolInstance) ||
                this.isSliceGroup(layer)
-    },
+    },  
     getStates: function(layer){
         var isVisible = true,
             isLocked = false,
@@ -2614,7 +2632,7 @@ SM.extend({
                     tempSymbol = layer.duplicate(),
                     tempGroup = tempSymbol.detachStylesAndReplaceWithGroupRecursively(0);
 
-                tempGroup.fixGeometryWithOptions(0)
+                tempGroup.fixGeometryWithOptions(0);
 
                 var tempSymbolLayers = tempGroup.children().objectEnumerator(),
                     overrides = layer.overrides(),
@@ -2646,7 +2664,6 @@ SM.extend({
                           data
                       );
                     }
-                    idx++;
                 }
                 this.removeLayer(tempGroup);
             }
@@ -2684,6 +2701,7 @@ SM.extend({
             for (var a = 0; a < svgSpans.length; a++) {
                 var attrsData = this.getTextAttrs(svgSpans[a]);
                 attrsData.content = svgSpans[a].match(regExpContent)[1];
+
                 offsetX = (
                         !offsetX ||
                         ( offsetX && offsetX > this.toJSNumber(attrsData.x) )
@@ -2709,7 +2727,7 @@ SM.extend({
                     tData["content"].trim() &&
                     (
                         colorHex != tData.fill ||
-                        Object.getOwnPropertyNames(tData).length > 4
+                        Object.getOwnPropertyNames(tData).length >= 4
                     )
                 ){
                     var textLayer = self.addText(),
@@ -2720,11 +2738,6 @@ SM.extend({
                     textLayer.setStringValue(tData.content);
                     textLayer.setTextColor(color);
                     textLayer.setFontSize(tData["font-size"] || layerData.fontSize);
-
-                    var defaultLineHeight = layer.font().defaultLineHeightForFont();
-
-                    textLayer.setLineHeight(layer.lineHeight() || defaultLineHeight);
-
                     textLayer.setCharacterSpacing(self.toJSNumber(tData["letter-spacing"]) || layer.characterSpacing());
                     textLayer.setTextAlignment(layer.textAlignment())
 
@@ -2735,13 +2748,29 @@ SM.extend({
                         textLayer.setFontPostscriptName(layer.fontPostscriptName());
                     }
 
+                    var defaultLineHeight = layer.font().defaultLineHeightForFont();
+                    var textLayerDefaultLineHeight = textLayer.font().defaultLineHeightForFont();
+
+
+                    if(!!tData["line-spacing"]){
+                        textLayer.setLineHeight(tData["line-spacing"] || textLayerDefaultLineHeight || defaultLineHeight || layer.lineHeight());
+                    } 
+                    else{
+                        if(layer.lineHeight() !=0){
+                            textLayer.setLineHeight(layer.lineHeight());
+                        }
+                        else{
+                            textLayer.setLineHeight(textLayerDefaultLineHeight);
+                        }
+                    }
+
                     parentGroup.addLayers([textLayer]);
 
                     var textLayerRect = self.getRect(textLayer);
 
                     textLayerRect.setX(layerRect.x + (self.toJSNumber(tData.x) - offsetX));
                     textLayerRect.setY(layerRect.y + (self.toJSNumber(tData.y) - offsetY));
-
+                    
                     self.getLayer(
                         artboard,
                         textLayer,
@@ -2933,9 +2962,8 @@ SM.extend({
                         exporting = true;
                         var artboard = self.selectionArtboards[artboardIndex],
                             page = artboard.parentGroup(),
-                            layer = artboard.children()[layerIndex],
-                            message = page.name() + ' - ' + artboard.name() + ' - ' + layer.name();
-                        // log( page.name() + ' - ' + artboard.name() + ' - ' + layer.name());
+                            layer = artboard.children()[layerIndex];
+                        //log( page.name() + ' - ' + artboard.name() + ' - ' + layer.name());
                         try {
                           self.getLayer(
                               artboard, // Sketch artboard element
@@ -2947,8 +2975,7 @@ SM.extend({
                           exporting = false;
                         } catch (e) {
                           self.wantsStop = true;
-                          log(e)
-                          processing.evaluateWebScript("$('#processing-text').html('<small>" + self.toHTMLEncode(message) + "</small>');");
+                          processing.evaluateWebScript("$('#processing-text').html('<strong>Error:</strong> <small>" + self.toHTMLEncode(e.message) + "</small>');");
                         }
 
                         if( layerIndex >= artboard.children().length ){
@@ -3097,13 +3124,15 @@ SM.extend({
 
         return savePathName;
     },
-    getLayer: function(artboard, layer, data, symbolLayer){
+    getLayer: function(artboard, layer, data, symbolLayer){        
         var artboardRect = artboard.absoluteRect(),
             group = layer.parentGroup(),
             layerStates = this.getStates(layer);
 
         if(layer && this.is(layer, MSLayerGroup) && /NOTE\#/.exec(layer.name())){
-            var textLayer = layer.children()[2];
+            for (var i = 0; i < layer.children().count(); i++) {
+                if(this.is(layer.children()[i], MSTextLayer)) var textLayer = layer.children()[i];
+            }
 
             data.notes.push({
                 rect: this.rectToJSON(textLayer.absoluteRect(), artboardRect),
@@ -3158,8 +3187,16 @@ SM.extend({
 
         if(symbolLayer) layerData.objectID = this.toJSString( symbolLayer.objectID() );
 
-
         if ( layerType != "slice" ) {
+            
+            tempLayer = layer;
+
+            if( this.is(layer.parentGroup(), MSShapeGroup) ){
+                while (layer.parentGroup().className() == "MSShapeGroup") {
+                    layer = layer.parentGroup();
+                }
+            }
+            
             var layerStyle = layer.style();
             layerData.rotation = layer.rotation();
             layerData.radius = this.getRadius(layer);
@@ -3167,7 +3204,9 @@ SM.extend({
             layerData.fills = this.getFills(layerStyle);
             layerData.shadows = this.getShadows(layerStyle);
             layerData.opacity = this.getOpacity(layerStyle);
-            layerData.styleName = this.getStyleName(layer);
+            layerData.styleName = this.getStyleName(layer);           
+            
+            layer = tempLayer;      
         }
 
         if ( layerType == "text" ) {
@@ -3182,14 +3221,15 @@ SM.extend({
 
         var layerCSSAttributes = layer.CSSAttributes(),
             css = [];
-
+        
         for(var i = 0; i < layerCSSAttributes.count(); i++) {
             var c = layerCSSAttributes[i]
             if(! /\/\*/.exec(c) ) css.push(this.toJSString(c));
         }
-        if(css.length > 0) {
+
+        if(css.length > 0 || layer.CSSAttributes().length > 0) {
             layerData.css = css;
-            if(this.is(layer, MSRectangleShape) && !!layer.fixedRadius()){
+            if(this.is(layer, MSRectangleShape) && !!layer.cornerRadiusString() && layer.cornerRadiusString() != 0 && !/border-radius/.exec(layer.CSSAttributes())){
                 layerData.css.push('border-radius: ' + layer.cornerRadiusString().replace(/;/g,'px ') + 'px;');
             }
         }
